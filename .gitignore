@@ -1,0 +1,10 @@
+/Debug/
+.cproject
+.project
+.settings/desktop.ini
+.settings/language.settings.xml
+.tracecompass/.tracing/desktop.ini
+.tracecompass/desktop.ini
+.tracecompass/Experiments/desktop.ini
+.tracecompass/Traces/desktop.ini
+desktop.ini
