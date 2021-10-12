@@ -38,7 +38,7 @@
 // <o> Advertising Stop Timeout [s] <1-1000>
 // <i> Default: 60 s
 #ifndef RTE_APP_ADV_DISABLE_TIMEOUT
-#define RTE_APP_ADV_DISABLE_TIMEOUT  60
+#define RTE_APP_ADV_DISABLE_TIMEOUT  10
 #endif
 
 // <o> Wake-up Button Check Interval [ms] <10-1000000>
@@ -95,7 +95,7 @@
 // <i> Outputs: Temperature, rel. humidity, atmospheric pressure, IAQ
 // <i> Default: Enabled
 #ifndef RTE_APP_ICS_EV_ENABLED
-#define RTE_APP_ICS_EV_ENABLED  1
+#define RTE_APP_ICS_EV_ENABLED  0
 #endif
 
 // <o> BSEC Sample Rate

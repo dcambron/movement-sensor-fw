@@ -2,8 +2,8 @@
  * Auto generated Run-Time-Environment Component Configuration File
  *      *** Do not modify ! ***
  *
- * Project: sense_ics_firmware_sleep
- * RTE configuration: sense_ics_firmware_sleep.rteconfig
+ * Project: movement-sensor-fw
+ * RTE configuration: movement-sensor-fw.rteconfig
 */
 #ifndef RTE_COMPONENTS_H
 #define RTE_COMPONENTS_H

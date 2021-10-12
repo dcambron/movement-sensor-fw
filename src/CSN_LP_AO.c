@@ -25,6 +25,8 @@
 #include <CSN_LP_AO.h>
 #include <BHI160_NDOF.h>
 
+#include "logger.h"
+
 
 //-----------------------------------------------------------------------------
 // DEFINES / CONSTANTS
@@ -54,6 +56,7 @@ static int CSN_LP_AO_RequestHandler(const struct CS_Request_Struct* request,
                                   char* response);
 
 static int CSN_LP_AO_PowerModeHandler(enum CS_PowerMode mode);
+static int CSN_LP_AO_SetPowerModeSuspended();
 static void CSN_LP_AO_PollHandler(void);
 static void CSN_LP_AO_EnableVirtualSensor(enum BHI160_NDOF_Sensor sensor);
 
@@ -153,6 +156,8 @@ struct CS_Node_Struct* CSN_LP_AO_Create(void)
 {
     int32_t errcode = 0;
 
+    logger_init();
+
     errcode = BHI160_NDOF_Initialize();
     if (errcode == BHY_SUCCESS)
     {
@@ -169,6 +174,14 @@ struct CS_Node_Struct* CSN_LP_AO_Create(void)
 
         if (errcode == BHY_SUCCESS)
         {
+           CSN_LP_AO_PowerModeHandler(CS_POWER_MODE_NORMAL);
+
+
+           CSN_LP_AO_EnableVirtualSensor(BHI160_NDOF_S_LINEAR_ACCELERATION);
+
+           CSN_LP_AO_SetPowerModeSuspended();
+
+
             return &ao_node;
         }
         else
@@ -181,8 +194,21 @@ struct CS_Node_Struct* CSN_LP_AO_Create(void)
         CSN_AO_Error("Failed to initialize BHI160. (err=%d)", errcode);
     }
 
+
+
     // Error occurred.
     return NULL;
+}
+
+int32_t local_abs(int16_t val)
+{
+	int32_t retval = 0;
+	retval = val;
+	if(val < 0)
+	{
+		retval = val*(-1);
+	}
+	return retval;
 }
 
 static void CSN_AO_SensorCallback(bhy_data_generic_t *data,
@@ -197,6 +223,20 @@ static void CSN_AO_SensorCallback(bhy_data_generic_t *data,
     case VS_ID_LINEAR_ACCELERATION:
     case VS_ID_LINEAR_ACCELERATION_WAKEUP:
         memcpy(&lin_accel, &data->data_vector, sizeof(bhy_data_vector_t));
+
+        if(local_abs(lin_accel.x) > 500 || local_abs(lin_accel.y) > 500 || local_abs(lin_accel.z) > 500 )
+        {
+        	//motion detected
+        	LED_On(PIN_DIO1);
+        	logger_write_log_entry(LOGGER_EVT_MOVEMENT_DETECTED);
+        	HAL_Delay(80);
+        }
+        else
+        {
+        	LED_Off(PIN_DIO1);
+        }
+
+
         break;
     case VS_ID_MAGNETOMETER:
     case VS_ID_MAGNETOMETER_WAKEUP:
@@ -294,6 +334,13 @@ static int CSN_LP_AO_RequestHandler(const struct CS_Request_Struct* request,
     CSN_AO_Error("AO property '%s' does not exist.", request->property);
     sprintf(response, "e/UNK_PROP");
     return CS_OK;
+}
+
+
+static int CSN_LP_AO_SetPowerModeSuspended()
+{
+	BHI160_NDOF_SetPowerMode(BHI160_NDOF_PM_AP_SUSPEND);
+	return CS_OK;
 }
 
 static int CSN_LP_AO_PowerModeHandler(enum CS_PowerMode mode)

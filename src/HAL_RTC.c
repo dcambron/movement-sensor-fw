@@ -74,6 +74,20 @@ uint32_t HAL_RTC_ReadCount(void)
     }
 }
 
+uint32_t HAL_RTC_Get_Seconds(void)
+{
+    static uint32_t cnt_time = 0;
+    static uint32_t tick_checkpoint = 0;
+
+    uint32_t now = HAL_RTC_GetTime(0);
+    uint32_t diff = (now - tick_checkpoint) / 3277;
+
+    cnt_time += diff;
+    tick_checkpoint += (diff * 3277);
+
+    return cnt_time;
+}
+
 
 void HAL_RTC_Initialize(void)
 {

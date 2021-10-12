@@ -61,6 +61,8 @@ extern void HAL_RTC_SetAlarmUs(uint32_t us);
 
 extern void HAL_RTC_SetAlarmTicks(uint32_t ticks);
 
+uint32_t HAL_RTC_Get_Seconds(void);
+
 
 #ifdef __cplusplus
 }

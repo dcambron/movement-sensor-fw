@@ -19,6 +19,8 @@
 #include <CSN_LP_ALS.h>
 #include <HAL.h>
 
+#include "logger.h"
+
 //-----------------------------------------------------------------------------
 // DEFINES / CONSTANTS
 //-----------------------------------------------------------------------------
@@ -45,6 +47,8 @@ static int CSN_ALS_PowerModeHandler(enum CS_PowerMode mode);
 
 static void CSN_ALS_PollHandler(void);
 
+static int ALS_TakeMeasurement();
+
 //-----------------------------------------------------------------------------
 // INTERNAL VARIABLES
 //-----------------------------------------------------------------------------
@@ -67,6 +71,8 @@ static bool noa1305_is_awake = false;
  * stabilizes after power up.
  */
 static struct stimer noa1305_timer;
+
+static struct stimer als_measurement_timer;
 
 static char als_response_token = 0;
 
@@ -128,12 +134,35 @@ struct CS_Node_Struct* CSN_LP_ALS_Create(struct stimer_ctx *ctx)
         }
     }
 
+    retval_node = &als_node;
+
     noa1305_is_awake = false;
 
     /* Initialize internal timer. */
     stimer_init(&noa1305_timer, ctx);
 
+
+    stimer_init(&als_measurement_timer, ctx);
+
+    ALS_TakeMeasurement();
+
+
     return retval_node;
+}
+
+static int triggered = 0;
+static int ALS_TakeMeasurement()
+{
+	triggered = 1;
+    CSN_ALS_PowerModeHandler(CS_POWER_MODE_NORMAL);
+
+    // Set timer to read light data after required number of measurement
+    // cycles elapsed.
+    stimer_expire_from_now_us(&noa1305_timer,
+    		CSN_LP_ALS_MEASURE_CYCLES * CSN_LP_ALS_INTEG_TIME_US);
+
+    stimer_expire_from_now_s(&als_measurement_timer,10);
+    return 0;
 }
 
 static int CSN_ALS_RequestHandler(const struct CS_Request_Struct* request, char* response)
@@ -211,6 +240,7 @@ static void CSN_ALS_PollHandler(void)
     int32_t retval;
     uint32_t lux;
     char response[21];
+    static int lights_on_flag = 0;
 
     /* Check if ongoing measurement result is ready. */
     if (noa1305_timer.is_running && stimer_is_expired(&noa1305_timer))
@@ -222,7 +252,41 @@ static void CSN_ALS_PollHandler(void)
             // Compose response packet and send notification to peer device.
             snprintf(response, 21, "%c/f/%lu.00", als_response_token, lux);
 
-            CS_InjectResponse(response);
+            if(triggered == 0)
+            {
+            	CS_InjectResponse(response);
+            }
+            else
+            {
+
+            	//LED_On(PIN_DIO2);
+            	//  HAL_Delay(80);
+            	// LED_Off(PIN_DIO2);
+            	//save measurement to EEPROM
+            	 triggered = 0;
+
+                if(lux > 750 && lights_on_flag == 0)
+                {
+                	//light event detected
+                	LED_On(PIN_DIO0);
+                	logger_write_log_entry(LOGGER_EVT_LIGHTS_ON);
+                	HAL_Delay(80);
+                	LED_Off(PIN_DIO0);
+                	lights_on_flag = 1;
+                }
+                else if (lux <= 750 && lights_on_flag == 1)
+                {
+                	//light event detected
+                	LED_On(PIN_DIO0);
+                	logger_write_log_entry(LOGGER_EVT_LIGHTS_OFF);
+                	HAL_Delay(80);
+                	LED_Off(PIN_DIO0);
+                	lights_on_flag = 0;
+
+                }
+
+
+            }
         }
         else
         {
@@ -232,4 +296,11 @@ static void CSN_ALS_PollHandler(void)
         /* Put the sensor to power down mode until next request is received. */
         CSN_ALS_PowerModeHandler(CS_POWER_MODE_SLEEP);
     }
+
+    if(als_measurement_timer.is_running && stimer_is_expired(&als_measurement_timer))
+    {
+
+    	ALS_TakeMeasurement();
+    }
+
 }

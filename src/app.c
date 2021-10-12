@@ -86,6 +86,8 @@ static void App_StateMachine(void)
         // Schedule next wake up with the same button check interval
         stimer_advance(&app_state_timer);
 
+        HAL_RTC_Get_Seconds();
+
         BTN_Initialize(BUTTON0);
 
         // Check button state

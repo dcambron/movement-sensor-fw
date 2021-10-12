@@ -172,6 +172,8 @@ int32_t NOA1305_ALS_InitializeParam(uint32_t I_k, uint8_t T_i)
 //              {
 //                  retval = NOA1305_E_COMM;
 //              }
+
+            	NOA1305_ALS_Stop();
             }
         }
     }

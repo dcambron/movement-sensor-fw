@@ -294,7 +294,7 @@ void App_Env_Initialize(void)
     /* Load RAM patch with BMM150 support into BHI160 and put them to sleep
      * mode.
      */
-#if RTE_APP_ICS_AL_ENABLED == 1
+#if RTE_APP_ICS_AO_ENABLED == 1
     CS_RegisterNode(CSN_LP_AO_Create());
 #else
     BHI160_NDOF_Initialize();
