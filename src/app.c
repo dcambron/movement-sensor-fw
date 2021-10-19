@@ -61,23 +61,23 @@ static void App_StateMachine(void)
         TRACE_PRINTF("State: Advertising\r\n");
 
         // Check if advertisement stop timeout has elapsed.
-        if (stimer_is_expired(&app_state_timer) == true)
-        {
-            // Set timeout to periodically check button state while advertising
-            // is disabled.
-            stimer_expire_from_now_ms(&app_state_timer,
-                    RTE_APP_BTN_CHECK_TIMEOUT);
-
-            // Stop advertising
-            BDK_BLE_AdvertisingStop();
-
-            LED_On(LED_BLUE);
-            HAL_Delay(APP_STATE_IND_LED_INTERVAL_MS);
-            LED_Off(LED_BLUE);
+        //if (stimer_is_expired(&app_state_timer) == true)
+        //{
+        //    // Set timeout to periodically check button state while advertising
+        //    // is disabled.
+        //    stimer_expire_from_now_ms(&app_state_timer,
+        //            RTE_APP_BTN_CHECK_TIMEOUT);
+        //
+        //    // Stop advertising
+        //    BDK_BLE_AdvertisingStop();
+        //
+        //    LED_On(LED_BLUE);
+        //    HAL_Delay(APP_STATE_IND_LED_INTERVAL_MS);
+        //    LED_Off(LED_BLUE);
 
             // Enter sleep state
-            app_state = APP_STATE_SLEEP;
-        }
+        //    app_state = APP_STATE_SLEEP;
+        //}
         break;
 
     case APP_STATE_SLEEP:
