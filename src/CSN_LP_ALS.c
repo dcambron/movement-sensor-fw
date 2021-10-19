@@ -265,7 +265,7 @@ static void CSN_ALS_PollHandler(void)
             	//save measurement to EEPROM
             	 triggered = 0;
 
-                if(lux > 750 && lights_on_flag == 0)
+                if(lux > logger_get_lux() && lights_on_flag == 0)
                 {
                 	//light event detected
                 	LED_On(PIN_DIO0);
@@ -274,7 +274,7 @@ static void CSN_ALS_PollHandler(void)
                 	LED_Off(PIN_DIO0);
                 	lights_on_flag = 1;
                 }
-                else if (lux <= 750 && lights_on_flag == 1)
+                else if (lux <= logger_get_lux() && lights_on_flag == 1)
                 {
                 	//light event detected
                 	LED_On(PIN_DIO0);

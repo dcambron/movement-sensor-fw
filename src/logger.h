@@ -19,6 +19,13 @@ void logger_write_log_entry(uint8_t event);
 
 int logger_read_log_entry(uint8_t* data);
 
+int logger_get_size();
+
+int logger_get_lux();
+
+void logger_set_lux(int lux);
+
+
 void logger_clear_log();
 
 

@@ -19,6 +19,7 @@
 static I2CEeprom m24rf64;
 
 static int index1 = 0;
+static int lux_threshold = 750;
 
 #define CSN_BSEC_EEPROM_I2C_ADDR       (0x50)
 #define CSN_BSEC_EEPROM_PAGE_SIZE      (4)
@@ -46,7 +47,7 @@ void logger_init()
 void logger_write_log_entry(uint8_t event)
 {
 	char data[LOG_ENTRY_SIZE] = {0};
-	uint32_t secs = HAL_RTC_Get_Seconds();
+	uint32_t secs = HAL_RTC_Get_Seconds()/10;
 	memcpy(data,&secs,4);
 	data[4] = event;
 	//log entry format: 4 bytes timestamp,1 bytes event code
@@ -84,6 +85,21 @@ void logger_clear_log()
 	char data[LOG_ENTRY_SIZE] = {0};
 
 	I2CEeprom_Write(0,data,4,&m24rf64);
+	index1 = 0;
 
 }
 
+int logger_get_size()
+{
+	return index1;
+}
+
+int logger_get_lux()
+{
+	return lux_threshold;
+}
+
+void logger_set_lux(int lux)
+{
+	lux_threshold = lux;
+}

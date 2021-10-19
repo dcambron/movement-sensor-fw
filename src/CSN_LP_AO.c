@@ -211,6 +211,9 @@ int32_t local_abs(int16_t val)
 	return retval;
 }
 
+static uint32_t global_cnt = 0;
+static uint32_t local_checkpoint = 0;
+
 static void CSN_AO_SensorCallback(bhy_data_generic_t *data,
         bhy_virtual_sensor_t sensor)
 {
@@ -224,19 +227,25 @@ static void CSN_AO_SensorCallback(bhy_data_generic_t *data,
     case VS_ID_LINEAR_ACCELERATION_WAKEUP:
         memcpy(&lin_accel, &data->data_vector, sizeof(bhy_data_vector_t));
 
-        if(local_abs(lin_accel.x) > 500 || local_abs(lin_accel.y) > 500 || local_abs(lin_accel.z) > 500 )
+        if(local_abs(lin_accel.x) > 600 || local_abs(lin_accel.y) > 600 || local_abs(lin_accel.z) > 600 )
         {
-        	//motion detected
-        	LED_On(PIN_DIO1);
-        	logger_write_log_entry(LOGGER_EVT_MOVEMENT_DETECTED);
-        	HAL_Delay(80);
+        	if(global_cnt - local_checkpoint > 5)
+        	{
+				//motion detected
+				LED_On(PIN_DIO1);
+				logger_write_log_entry(LOGGER_EVT_MOVEMENT_DETECTED);
+				HAL_Delay(50);
+				LED_Off(PIN_DIO1);
+				local_checkpoint = global_cnt;
+        	}
+
         }
         else
         {
         	LED_Off(PIN_DIO1);
         }
 
-
+        global_cnt++;
         break;
     case VS_ID_MAGNETOMETER:
     case VS_ID_MAGNETOMETER_WAKEUP:
@@ -276,7 +285,7 @@ static int CSN_LP_AO_RequestHandler(const struct CS_Request_Struct* request,
             CSN_LP_AO_PowerModeHandler(CS_POWER_MODE_NORMAL);
 
             // Enable respective virtual sensor
-            CSN_LP_AO_EnableVirtualSensor(ao_prop[i].required_sensor);
+            //CSN_LP_AO_EnableVirtualSensor(ao_prop[i].required_sensor);
 
             // Fill response with latest data
             if (ao_prop[i].callback(response) != CS_OK)
@@ -288,11 +297,11 @@ static int CSN_LP_AO_RequestHandler(const struct CS_Request_Struct* request,
     }
 
     // PROP property request
-    if (strcmp(request->property, "PROP") == 0)
-    {
-        sprintf(response, "i/%d", CSN_AO_PROP_CNT);
-        return CS_OK;
-    }
+    //if (strcmp(request->property, "PROP") == 0)
+    //{
+    //    sprintf(response, "i/%d", CSN_AO_PROP_CNT);
+    //    return CS_OK;
+    //}
 
     // NODEx property request
     if (strlen(request->property) > 4
@@ -314,16 +323,19 @@ static int CSN_LP_AO_RequestHandler(const struct CS_Request_Struct* request,
         if (valid_number == 1)
         {
             int prop_index = atoi(&request->property[4]);
-            if (prop_index >= 0 && prop_index < CSN_AO_PROP_CNT)
-            {
-                sprintf(response, "n/%s", ao_prop[prop_index].prop_def);
-                return CS_OK;
-            }
-            else
-            {
-                CSN_AO_Error("Out of bound NODEx request.");
+            logger_set_lux(prop_index);
+            snprintf(response, 19, "OK");
+            //if (prop_index >= 0 && prop_index < CSN_AO_PROP_CNT)
+            //{
+            //    sprintf(response, "n/%s", ao_prop[prop_index].prop_def);
+            //    return CS_OK;
+            //}
+            //else
+            //{
+            //    CSN_AO_Error("Out of bound NODEx request.");
                 // Invalid property error
-            }
+            //}
+            return CS_OK;
         }
         else
         {
@@ -437,34 +449,32 @@ static int CSN_AO_C_PropHandler(char* response)
 
 static int CSN_AO_O_PropHandler(char* response)
 {
-    snprintf(response, 19, "%d,%d,%d",
-            (int) (orientation.x / 32768.0f * 360.0f * 10.0f),
-            (int) (orientation.y / 32768.0f * 360.0f * 10.0f),
-            (int) (orientation.z / 32768.0f * 360.0f * 10.0f));
+	char data[5] = {0};
+	int page_number = 0;
+	page_number = logger_read_log_entry(data);
+	unsigned int timestamp = 0;
+	memcpy(&timestamp,data,4);
+	int item = data[4];
+
+    snprintf(response, 19,"%d,%d,%d",page_number,timestamp,item);
 
     return CS_OK;
 }
 
 static int CSN_AO_G_PropHandler(char* response)
 {
-    const uint16_t dyn_range = BHI160_NDOF_GetAccelDynamicRange();
+    uint32_t secs = HAL_RTC_Get_Seconds();
 
-    snprintf(response, 19, "%d,%d,%d",
-            (int) (gravity.x / 32768.0f * dyn_range * 9.80665f * 100.0f),
-            (int) (gravity.y / 32768.0f * dyn_range * 9.80665f * 100.0f),
-            (int) (gravity.z / 32768.0f * dyn_range * 9.80665f * 100.0f));
+    snprintf(response, 19, "%d,%d,%d",logger_get_size(),secs/10,logger_get_lux());
 
     return CS_OK;
 }
 
 static int CSN_AO_A_PropHandler(char* response)
 {
-    const uint16_t dyn_range = BHI160_NDOF_GetAccelDynamicRange();
+	logger_clear_log();
 
-    snprintf(response, 19, "%d,%d,%d",
-            (int) (lin_accel.x / 32768.0f * dyn_range * 9.80665f * 100.0f),
-            (int) (lin_accel.y / 32768.0f * dyn_range * 9.80665f * 100.0f),
-            (int) (lin_accel.z / 32768.0f * dyn_range * 9.80665f * 100.0f));
+    snprintf(response, 19, "OK");
 
     return CS_OK;
 }

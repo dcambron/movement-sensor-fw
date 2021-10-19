@@ -59,7 +59,7 @@ static void App_StateMachine(void)
 
     case APP_STATE_ADVERTISING:
         TRACE_PRINTF("State: Advertising\r\n");
-
+        HAL_RTC_Get_Seconds();
         // Check if advertisement stop timeout has elapsed.
         //if (stimer_is_expired(&app_state_timer) == true)
         //{
