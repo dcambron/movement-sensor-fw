@@ -24,6 +24,7 @@
 #include <BDK.h>
 #include <CSN_LP_AO.h>
 #include <BHI160_NDOF.h>
+#include <math.h>
 
 #include "logger.h"
 
@@ -118,9 +119,9 @@ struct CSN_AO_Property_Struct
 
 static const struct CSN_AO_Property_Struct ao_prop[CSN_AO_PROP_CNT] = {
     { "C",   "p/R/h/CAL",  &CSN_AO_C_PropHandler,                                  0 },
-    { "O",     "p/R/c/O",   &CSN_AO_O_PropHandler,         BHI160_NDOF_S_ORIENTATION },
-    { "G",     "p/R/c/G",   &CSN_AO_G_PropHandler,             BHI160_NDOF_S_GRAVITY },
-    { "A",     "p/R/c/A",   &CSN_AO_A_PropHandler, BHI160_NDOF_S_LINEAR_ACCELERATION },
+    { "O",     "p/R/c/O",   &CSN_AO_O_PropHandler,       						  0 },
+    { "G",     "p/R/c/G",   &CSN_AO_G_PropHandler,        					     0 },
+    { "A",     "p/R/c/A",   &CSN_AO_A_PropHandler, 								0 },
     { "M",     "p/R/c/M",   &CSN_AO_M_PropHandler,      BHI160_NDOF_S_MAGNETIC_FIELD },
     { "AR",   "p/R/c/AR",  &CSN_AO_AR_PropHandler,    BHI160_NDOF_S_RATE_OF_ROTATION },
     { "H",     "p/R/f/H",   &CSN_AO_H_PropHandler,         BHI160_NDOF_S_ORIENTATION },
@@ -178,6 +179,8 @@ struct CS_Node_Struct* CSN_LP_AO_Create(void)
 
 
            CSN_LP_AO_EnableVirtualSensor(BHI160_NDOF_S_LINEAR_ACCELERATION);
+           CSN_LP_AO_EnableVirtualSensor(BHI160_NDOF_S_GRAVITY);
+
 
            CSN_LP_AO_SetPowerModeSuspended();
 
@@ -213,15 +216,19 @@ int32_t local_abs(int16_t val)
 
 static uint32_t global_cnt = 0;
 static uint32_t local_checkpoint = 0;
+static uint32_t schedule_tilt_measure = 0;
 
 static void CSN_AO_SensorCallback(bhy_data_generic_t *data,
         bhy_virtual_sensor_t sensor)
 {
+
     switch ((int) sensor)
     {
     case VS_ID_GRAVITY:
     case VS_ID_GRAVITY_WAKEUP:
         memcpy(&gravity, &data->data_vector, sizeof(bhy_data_vector_t));
+        //logger_write_log_entry_ext(LOGGER_EVT_MOVEMENT_DETECTED,gravity.z);
+        //bhy_disable_virtual_sensor(BHI160_NDOF_S_GRAVITY, VS_WAKEUP);
         break;
     case VS_ID_LINEAR_ACCELERATION:
     case VS_ID_LINEAR_ACCELERATION_WAKEUP:
@@ -231,9 +238,30 @@ static void CSN_AO_SensorCallback(bhy_data_generic_t *data,
         {
         	if(global_cnt - local_checkpoint > 5)
         	{
+
+        		const uint16_t dyn_range = BHI160_NDOF_GetAccelDynamicRange();
 				//motion detected
 				LED_On(PIN_DIO1);
-				logger_write_log_entry(LOGGER_EVT_MOVEMENT_DETECTED);
+				//logger_write_log_entry(LOGGER_EVT_MOVEMENT_DETECTED);
+
+				//int y = (orientation.y / 32768.0f * 360.0f);
+				//int z = (orientation.z / 32768.0f * 360.0f);
+				//y = local_abs(y);
+				//z = local_abs(z);
+				//if(z > y)
+				//{
+				//	logger_write_log_entry_ext(LOGGER_EVT_MOVEMENT_DETECTED,z);
+				//}
+				//else
+				//{
+				//CSN_LP_AO_EnableVirtualSensor(BHI160_NDOF_S_GRAVITY);
+
+
+					schedule_tilt_measure = 1;
+				//}
+
+
+
 				HAL_Delay(50);
 				LED_Off(PIN_DIO1);
 				local_checkpoint = global_cnt;
@@ -242,6 +270,23 @@ static void CSN_AO_SensorCallback(bhy_data_generic_t *data,
         }
         else
         {
+        	if(schedule_tilt_measure == 1)
+        	{
+        		float y2,x2,avg;
+        		float angle = 0;
+				y2 = gravity.y * gravity.y;
+				x2 = gravity.x * gravity.x;
+				avg = sqrt(y2 + x2);
+				avg = avg / (float)gravity.z;
+				angle = atan(avg);
+				angle = angle * 180.0 / 3.14159;
+
+				//(int)(gravity.z / 32768.0f * dyn_range * 90)
+
+				logger_write_log_entry_ext(LOGGER_EVT_MOVEMENT_DETECTED,(int)angle);
+				schedule_tilt_measure = 0;
+        	}
+
         	LED_Off(PIN_DIO1);
         }
 
@@ -282,7 +327,7 @@ static int CSN_LP_AO_RequestHandler(const struct CS_Request_Struct* request,
         if (strcmp(request->property, ao_prop[i].name) == 0)
         {
             // Wake up the sensor chip
-            CSN_LP_AO_PowerModeHandler(CS_POWER_MODE_NORMAL);
+           // CSN_LP_AO_PowerModeHandler(CS_POWER_MODE_NORMAL);
 
             // Enable respective virtual sensor
             //CSN_LP_AO_EnableVirtualSensor(ao_prop[i].required_sensor);

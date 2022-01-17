@@ -16,6 +16,7 @@
 void logger_init();
 
 void logger_write_log_entry(uint8_t event);
+void logger_write_log_entry_ext(uint8_t event,int angle);
 
 int logger_read_log_entry(uint8_t* data);
 

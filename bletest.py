@@ -13,7 +13,8 @@ import pygatt
 #
 #A/AO/A Clear the log. Response: A/OK
 
-
+import time
+import sys
 
 class HB_BLE_Terminal():
 
@@ -28,7 +29,7 @@ class HB_BLE_Terminal():
             device.char_write('e093f3b7-00a3-a9e5-9eca-40036e0edc24',b,wait_for_response=False)
             self.flag_waiting_for_noti = True
             while(self.flag_waiting_for_noti == True):
-                pass
+                time.sleep(0.001)
             return self.last_noti_val
 
     def notification_received(self,handle,value):
@@ -39,6 +40,7 @@ class HB_BLE_Terminal():
     
 
 def main():
+    sys.setswitchinterval(0.001)
     t = HB_BLE_Terminal()
     adapter = pygatt.BGAPIBackend(serial_port='COM77')
     adapter.start()
@@ -46,6 +48,10 @@ def main():
     for res in result:
         if(res['name'] == 'HB_BLE_Terminal'):
             print(res['address'])
+            #if('60:C0:BF:28:6A:BB' == res['address']):
+            #    pass
+            #else:
+            #    continue
             device = adapter.connect(res['address'])
             device.discover_characteristics()
             device.subscribe('e093f3b6-00a3-a9e5-9eca-40026e0edc24', callback=t.notification_received, indication=False,wait_for_response=False)

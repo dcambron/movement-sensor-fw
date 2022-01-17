@@ -269,7 +269,7 @@ static void CSN_ALS_PollHandler(void)
                 {
                 	//light event detected
                 	LED_On(PIN_DIO0);
-                	logger_write_log_entry(LOGGER_EVT_LIGHTS_ON);
+                	//logger_write_log_entry(LOGGER_EVT_LIGHTS_ON);
                 	HAL_Delay(80);
                 	LED_Off(PIN_DIO0);
                 	lights_on_flag = 1;
@@ -278,7 +278,7 @@ static void CSN_ALS_PollHandler(void)
                 {
                 	//light event detected
                 	LED_On(PIN_DIO0);
-                	logger_write_log_entry(LOGGER_EVT_LIGHTS_OFF);
+                	//logger_write_log_entry(LOGGER_EVT_LIGHTS_OFF);
                 	HAL_Delay(80);
                 	LED_Off(PIN_DIO0);
                 	lights_on_flag = 0;
